@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking Merchandise Event</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: white;
+            background: linear-gradient(to right, #ff9966, #ff5e62);
+        }
+        .background-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('https://source.unsplash.com/1600x900/?business,entrepreneur') center/cover no-repeat;
+            filter: blur(8px);
+            z-index: -1;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+            color: black;
+            text-align: center;
+        }
+        .menu {
+            display: flex;
+            justify-content: space-around;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.8);
+        }
+        .menu button {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+        }
+        .menu button:hover {
+            text-decoration: underline;
+        }
+        .section {
+            display: none;
+        }
+        .active {
+            display: block;
+        }
+        canvas {
+            margin-top: 20px;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="background-overlay"></div>
+    <div class="menu">
+        <button onclick="showSection('home')">Home</button>
+        <button onclick="showSection('products')">Daftar Produk</button>
+        <button onclick="showSection('admin')">Admin</button>
+    </div>
+    <div class="container">
+        <div id="home" class="section active">
+            <h2>Selamat Datang di TOSIS Entrepreneur</h2>
+            <p>Tempat pemesanan merchandise event secara online.</p>
+        </div>
+        <div id="products" class="section">
+            <h2>Daftar Produk</h2>
+            <div id="product-list"></div>
+        </div>
+        <div id="admin" class="section">
+            <h2>Admin Panel</h2>
+            <button onclick="showAdminLog()">Lihat Data Pembelian</button>
+            <button onclick="changeAdminPassword()">Ubah Password Admin</button>
+            <div id="admin-log" style="display:none; margin-top: 20px;"></div>
+            <canvas id="salesChart" width="400" height="200"></canvas>
+        </div>
+    </div>
+
+    <script>
+        let merchandise = [
+            { nama: "Kaos Event", harga: 100000, stok: 10, img: "https://via.placeholder.com/100" },
+            { nama: "Tumbler Event", harga: 50000, stok: 15, img: "https://via.placeholder.com/100" },
+            { nama: "Topi Event", harga: 75000, stok: 12, img: "https://via.placeholder.com/100" }
+        ];
+        let adminPassword = "admin123";
+        let purchaseData = [];
+
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+            document.getElementById(sectionId).classList.add('active');
+        }
+
+        function loadProducts() {
+            let productList = document.getElementById("product-list");
+            productList.innerHTML = "";
+            merchandise.forEach((item, index) => {
+                productList.innerHTML += `
+                    <div class="product">
+                        <img src="${item.img}" alt="${item.nama}">
+                        <p>${item.nama} - Rp ${item.harga} (Stok: ${item.stok})</p>
+                        <button onclick="orderProduct(${index})">Pesan</button>
+                    </div>
+                `;
+            });
+        }
+
+        function orderProduct(index) {
+            let buyer = prompt("Masukkan nama Anda:");
+            if (!buyer) return;
+            if (merchandise[index].stok > 0) {
+                merchandise[index].stok -= 1;
+                purchaseData.push({ pembeli: buyer, produk: merchandise[index].nama });
+                loadProducts();
+                alert(`${buyer} berhasil memesan ${merchandise[index].nama}`);
+            } else {
+                alert("Stok habis!");
+            }
+        }
+
+        function getTotalSales() {
+            let total = 0;
+            purchaseData.forEach(data => {
+                let product = merchandise.find(item => item.nama === data.produk);
+                total += product.harga;
+            });
+            return total;
+        }
+
+        function getMostPopularProduct() {
+            let productCount = {};
+            
+            purchaseData.forEach(data => {
+                if (productCount[data.produk]) {
+                    productCount[data.produk]++;
+                } else {
+                    productCount[data.produk] = 1;
+                }
+            });
+            
+            let mostPopular = Object.keys(productCount).reduce((a, b) => productCount[a] > productCount[b] ? a : b);
+            return mostPopular;
+        }
+
+        function drawSalesChart() {
+            let dateSales = {};
+            
+            purchaseData.forEach(data => {
+                let date = new Date();
+                let day = date.getDate();
+                let month = date.getMonth() + 1;
+                let year = date.getFullYear();
+                let dateString = `${day}-${month}-${year}`;
+                
+                if (dateSales[dateString]) {
+                    dateSales[dateString]++;
+                } else {
+                    dateSales[dateString] = 1;
+                }
+            });
+            
+            let labels = Object.keys(dateSales);
+            let data = Object.values(dateSales);
+
+            let ctx = document.getElementById('salesChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Jumlah Pemesanan',
+                        data: data,
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        fill: false,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Tanggal'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Jumlah Pemesanan'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function showAdminLog() {
+            let password = prompt("Masukkan password admin:");
+            if (password === adminPassword) {
+                let logDiv = document.getElementById("admin-log");
+                logDiv.innerHTML = "<h3>Data Pembelian</h3>";
+                
+                // Tampilkan total penjualan
+                let totalSales = getTotalSales();
+                logDiv.innerHTML += `<p>Total Penjualan: Rp ${totalSales}</p>`;
+                
+                // Tampilkan produk paling laris
+                let mostPopularProduct = getMostPopularProduct();
+                logDiv.innerHTML += `<p>Produk Paling Laris: ${mostPopularProduct}</p>`;
+                
+                // Tampilkan data pembelian
+                purchaseData.forEach(data => {
+                    logDiv.innerHTML += `<p>${data.pembeli} membeli ${data.produk}</p>`;
+                });
+                
+                // Tampilkan grafik tren pemesanan
+                drawSalesChart();
+
+                logDiv.style.display = "block";
+            } else {
+                alert("Password salah!");
+            }
+        }
+
+        function changeAdminPassword() {
+            let oldPassword = prompt("Masukkan password admin saat ini:");
+            if (oldPassword === adminPassword) {
+                let newPassword = prompt("Masukkan password admin baru:");
+                if (newPassword) {
+                    adminPassword = newPassword;
+                    alert("Password admin berhasil diubah!");
+                }
+            } else {
+                alert("Password lama salah! Anda tidak dapat mengubah password.");
+            }
+        }
+
+        loadProducts();
+    </script>
+</body>
+</html>
